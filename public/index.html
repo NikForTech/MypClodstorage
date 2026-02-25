@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT File Upload</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1 class="title">NFT File Upload</h1>
+            <p class="subtitle">Securely upload files to your Playbook account</p>
+
+            <form id="uploadForm" class="upload-form">
+                <div class="input-group">
+                    <label for="uploadKey">Secret Key</label>
+                    <div class="password-input-wrapper">
+                        <input 
+                            type="password" 
+                            id="uploadKey" 
+                            name="uploadKey" 
+                            placeholder="Enter your upload key"
+                            required
+                            autocomplete="off"
+                        >
+                        <button type="button" class="toggle-password" id="togglePassword" aria-label="Toggle password visibility">
+                            <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="file-upload-zone" id="dropZone">
+                    <input type="file" id="fileInput" name="file" hidden>
+                    <div class="drop-content">
+                        <svg class="file-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                            <polyline points="13 2 13 9 20 9"></polyline>
+                        </svg>
+                        <p class="drop-text" id="dropText">Drag and drop your file here</p>
+                        <p class="drop-subtext">Or click to browse</p>
+                        <div id="fileInfo" class="file-info hidden">
+                            <p class="file-name" id="fileName"></p>
+                            <p class="file-size" id="fileSize"></p>
+                            <span class="file-type-badge" id="fileTypeBadge"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-container hidden" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p class="progress-text" id="progressText">0%</p>
+                </div>
+
+                <button type="submit" class="upload-btn" id="uploadBtn">
+                    <span class="btn-text">Upload File</span>
+                    <span class="btn-spinner hidden" id="btnSpinner">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        </svg>
+                    </span>
+                </button>
+
+                <div class="result-container hidden" id="resultContainer">
+                    <div class="result-content" id="resultContent">
+                        <svg class="result-icon" id="resultIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        </svg>
+                        <p class="result-message" id="resultMessage"></p>
+                        <a href="#" class="result-link hidden" id="resultLink" target="_blank" rel="noopener noreferrer"></a>
+                        <button type="button" class="reset-btn" id="resetBtn">Upload Another File</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <footer class="footer">
+            <p>© <span id="year"></span> NikForTech. All rights reserved.</p>
+
+
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
