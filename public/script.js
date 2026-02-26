@@ -24,11 +24,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let selectedFile = null;
 
-    // Password toggle functionality
+    // ── Detect environment: use function URL on Netlify, /upload locally ──────
+    const UPLOAD_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? '/upload'
+        : '/.netlify/functions/api/upload';
+
+    // ── Password toggle ───────────────────────────────────────────────────────
     togglePasswordBtn.addEventListener('click', () => {
         const type = uploadKeyInput.getAttribute('type') === 'password' ? 'text' : 'password';
         uploadKeyInput.setAttribute('type', type);
-        
+
         const eyeIcon = togglePasswordBtn.querySelector('.eye-icon');
         if (type === 'text') {
             eyeIcon.innerHTML = `
@@ -43,12 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // File input change handler
+    // ── File input change ─────────────────────────────────────────────────────
     fileInput.addEventListener('change', (e) => {
         handleFileSelection(e.target.files[0]);
     });
 
-    // Drag and drop handlers
+    // ── Drag and drop ─────────────────────────────────────────────────────────
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropZone.classList.add('drag-over');
@@ -62,51 +67,35 @@ document.addEventListener('DOMContentLoaded', () => {
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropZone.classList.remove('drag-over');
-        
         const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            handleFileSelection(files[0]);
-        }
+        if (files.length > 0) handleFileSelection(files[0]);
     });
 
-    // Click to browse
-    dropZone.addEventListener('click', () => {
-        fileInput.click();
-    });
+    dropZone.addEventListener('click', () => fileInput.click());
 
-    // Handle file selection
+    // ── Handle file selection ─────────────────────────────────────────────────
     function handleFileSelection(file) {
         if (!file) return;
-
         selectedFile = file;
-        
-        // Display file info
+
         fileName.textContent = file.name;
         fileSize.textContent = formatFileSize(file.size);
-        
-        // Determine file type
-        const fileType = getFileType(file);
-        fileTypeBadge.textContent = fileType;
-        
-        // Show file info
+        fileTypeBadge.textContent = getFileType(file);
+
         fileInfo.classList.remove('hidden');
         dropText.textContent = file.name;
-        
-        // Hide result container if visible
         resultContainer.classList.add('hidden');
     }
 
-    // Get file type category
     function getFileType(file) {
         const type = file.type.toLowerCase();
-        if (type.startsWith('video/')) return 'VIDEO';
-        if (type.startsWith('audio/')) return 'AUDIO';
-        if (type.startsWith('image/')) return 'IMAGE';
+        if (type.startsWith('video/'))  return 'VIDEO';
+        if (type.startsWith('audio/'))  return 'AUDIO';
+        if (type.startsWith('image/'))  return 'IMAGE';
         if (type.includes('pdf') || type.includes('document') || type.includes('text')) return 'DOCUMENT';
         return 'FILE';
     }
 
-    // Format file size
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -115,28 +104,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
     }
 
-    // Form submission handler
+    // ── Form submit ───────────────────────────────────────────────────────────
     uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Validate key
         if (!uploadKeyInput.value.trim()) {
             showError('Please enter your upload key');
             return;
         }
-
-        // Validate file
         if (!selectedFile) {
             showError('Please select a file to upload');
             return;
         }
 
-        // Prepare form data
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('uploadKey', uploadKeyInput.value.trim());
 
-        // Show progress
+        // Show loading state
         uploadBtn.disabled = true;
         btnText.textContent = 'Uploading...';
         btnSpinner.classList.remove('hidden');
@@ -145,24 +130,18 @@ document.addEventListener('DOMContentLoaded', () => {
         progressText.textContent = '0%';
         resultContainer.classList.add('hidden');
 
-        // Create XMLHttpRequest for upload progress
         const xhr = new XMLHttpRequest();
 
-        // Upload progress handler
         xhr.upload.addEventListener('progress', (e) => {
             if (e.lengthComputable) {
-                const percentComplete = (e.loaded / e.total) * 100;
-                progressFill.style.width = percentComplete + '%';
-                progressText.textContent = Math.round(percentComplete) + '%';
+                const pct = Math.round((e.loaded / e.total) * 100);
+                progressFill.style.width = pct + '%';
+                progressText.textContent = pct + '%';
             }
         });
 
-        // Load handler
         xhr.addEventListener('load', () => {
-            uploadBtn.disabled = false;
-            btnText.textContent = 'Upload File';
-            btnSpinner.classList.add('hidden');
-            progressContainer.classList.add('hidden');
+            resetBtn_state();
 
             if (xhr.status === 200) {
                 try {
@@ -172,85 +151,80 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         showError(response.message || 'Upload failed');
                     }
-                } catch (error) {
+                } catch {
                     showError('Invalid response from server');
                 }
             } else {
                 try {
-                    const errorResponse = JSON.parse(xhr.responseText);
-                    showError(errorResponse.message || `Upload failed with status ${xhr.status}`);
-                } catch (error) {
+                    const err = JSON.parse(xhr.responseText);
+                    showError(err.message || `Upload failed (${xhr.status})`);
+                } catch {
                     showError(`Upload failed with status ${xhr.status}`);
                 }
             }
         });
 
-        // Error handler
         xhr.addEventListener('error', () => {
-            uploadBtn.disabled = false;
-            btnText.textContent = 'Upload File';
-            btnSpinner.classList.add('hidden');
-            progressContainer.classList.add('hidden');
+            resetBtn_state();
             showError('Network error. Please check your connection and try again.');
         });
 
-        // Abort handler
         xhr.addEventListener('abort', () => {
-            uploadBtn.disabled = false;
-            btnText.textContent = 'Upload File';
-            btnSpinner.classList.add('hidden');
-            progressContainer.classList.add('hidden');
+            resetBtn_state();
             showError('Upload cancelled');
         });
 
-        // Send request
-        xhr.open('POST', '/upload');
+        // ← This is the key line — uses UPLOAD_URL not hardcoded '/upload'
+        xhr.open('POST', UPLOAD_URL);
         xhr.send(formData);
     });
 
-    // Show success result
+    function resetBtn_state() {
+        uploadBtn.disabled = false;
+        btnText.textContent = 'Upload File';
+        btnSpinner.classList.add('hidden');
+        progressContainer.classList.add('hidden');
+    }
+
+    // ── Success / Error display ───────────────────────────────────────────────
     function showSuccess(response) {
-        resultContainer.classList.remove('hidden');
-        resultContainer.classList.remove('error');
+        resultContainer.classList.remove('hidden', 'error');
         resultContainer.classList.add('success');
-        
+
         resultIcon.innerHTML = `
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
             <polyline points="22 4 12 14.01 9 11.01"></polyline>
         `;
-        
-        resultMessage.textContent ='File uploaded successfully!';
-        
+
+        resultMessage.textContent = response.message || 'File uploaded successfully!';
+
         if (response.assetUrl) {
             resultLink.href = response.assetUrl;
-            resultLink.textContent = 'View Upload';
+            resultLink.textContent = 'View Uploaded File';
             resultLink.classList.remove('hidden');
         } else {
             resultLink.classList.add('hidden');
         }
     }
 
-    // Show error result
     function showError(message) {
-        resultContainer.classList.remove('hidden');
-        resultContainer.classList.remove('success');
+        resultContainer.classList.remove('hidden', 'success');
         resultContainer.classList.add('error');
-        
+
         resultIcon.innerHTML = `
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
         `;
-        
+
         resultMessage.textContent = message;
         resultLink.classList.add('hidden');
     }
-  
-  
-  document.getElementById("year").textContent = new Date().getFullYear();
 
+    // ── Footer year ───────────────────────────────────────────────────────────
+    document.getElementById('year').textContent = new Date().getFullYear();
 
-    // Reset button handler
+    // ── Reset button ──────────────────────────────────────────────────────────
     resetBtn.addEventListener('click', () => {
         selectedFile = null;
         fileInput.value = '';
