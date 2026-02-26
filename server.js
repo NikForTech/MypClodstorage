@@ -260,9 +260,9 @@ app.use((req, res) => {
 //  Local dev server (Netlify uses module.exports instead)
 // ─────────────────────────────────────────────────────────────────────────────
 if (require.main === module) {
-  const DEV_PORT = process.env.DEV_PORT || 3000;
-  app.listen(DEV_PORT, () => {
-    console.log(`\n🚀  Server → http://localhost:${DEV_PORT}`);
+  const PORT = process.env.PORT;
+  app.listen(PORT, () => {
+    console.log(`\n🚀  Server → http://localhost:${PORT}`);
     console.log(`📦  Max file size : ${MAX_FILE_SIZE_MB} MB`);
     console.log(`\n☁️   Cloudinary Pool (${cloudinaryAccounts.length}/3 configured):`);
     cloudinaryAccounts.forEach((acc, i) => {
