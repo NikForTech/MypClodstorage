@@ -1,0 +1,28 @@
+[build]
+  command   = "npm install"
+  publish   = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# ── Route all API calls through the serverless function ──────────────────────
+
+[[redirects]]
+  from   = "/upload"
+  to     = "/.netlify/functions/api/upload"
+  status = 200
+  force  = true
+
+[[redirects]]
+  from   = "/status"
+  to     = "/.netlify/functions/api/status"
+  status = 200
+  force  = true
+
+# Catch-all for any future routes
+[[redirects]]
+  from   = "/api/*"
+  to     = "/.netlify/functions/api/:splat"
+  status = 200
+  force  = true 

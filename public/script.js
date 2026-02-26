@@ -219,11 +219,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <polyline points="22 4 12 14.01 9 11.01"></polyline>
         `;
         
-        resultMessage.textContent = response.message || 'File uploaded successfully!';
+        resultMessage.textContent ='File uploaded successfully!';
         
         if (response.assetUrl) {
             resultLink.href = response.assetUrl;
-            resultLink.textContent = 'View in Playbook';
+            resultLink.textContent = 'View Upload';
             resultLink.classList.remove('hidden');
         } else {
             resultLink.classList.add('hidden');
