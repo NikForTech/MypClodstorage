@@ -6,26 +6,5 @@
 [functions]
   node_bundler = "esbuild"
 
-# Increase function timeout to max allowed on free tier (10s)
 [functions."api"]
   timeout = 10
-
-# ── Redirect every request (except static files) to the Express function ─────
-
-[[redirects]]
-  from   = "/upload"
-  to     = "/.netlify/functions/api/upload"
-  status = 200
-  force  = true
-
-[[redirects]]
-  from   = "/status"
-  to     = "/.netlify/functions/api/status"
-  status = 200
-  force  = true
-
-[[redirects]]
-  from   = "/*"
-  to     = "/.netlify/functions/api/:splat"
-  status = 200
-  force  = false
