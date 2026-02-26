@@ -24,10 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let selectedFile = null;
 
-    // ── Detect environment: use function URL on Netlify, /upload locally ──────
-    const UPLOAD_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? '/upload'
-        : '/.netlify/functions/api/upload';
+    // ── Detect environment automatically ─────────────────────────────────────
+    const isLocal    = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const BASE_URL   = isLocal ? '' : '/.netlify/functions/api';
+    const UPLOAD_URL = `${BASE_URL}/upload`;
 
     // ── Password toggle ───────────────────────────────────────────────────────
     togglePasswordBtn.addEventListener('click', () => {
