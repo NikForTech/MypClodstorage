@@ -13,12 +13,11 @@ const cloudinarySDK  = require('cloudinary').v2;
 // ─────────────────────────────────────────────────────────────────────────────
 //  Config
 // ─────────────────────────────────────────────────────────────────────────────
-const PORT             = process.env.PORT || 3000;
-const MAX_FILE_SIZE_MB = 5;                          // hard-capped at 5 MB for Netlify
+const MAX_FILE_SIZE_MB    = 5; // hard-capped at 5 MB for Netlify
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Cloudinary Account Pool  (up to 3 accounts → ~75 GB combined free storage)
+//  Cloudinary Account Pool
 // ─────────────────────────────────────────────────────────────────────────────
 const cloudinaryAccounts = [
   {
@@ -41,7 +40,7 @@ const cloudinaryAccounts = [
   },
 ].filter(acc => acc.cloud_name && acc.api_key && acc.api_secret);
 
-// Round-robin pointer (in-memory; resets per cold start on Netlify — acceptable)
+// Round-robin pointer
 let rrIndex = 0;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,15 +75,11 @@ const uploadLimiter = rateLimit({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Multer  — memory storage (no disk writes; safe for serverless)
+//  Multer — memory storage (no disk writes, safe for serverless)
 // ─────────────────────────────────────────────────────────────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
   limits:  { fileSize: MAX_FILE_SIZE_BYTES },
-  fileFilter: (req, file, cb) => {
-    // Accept all file types — size is the only gate
-    cb(null, true);
-  },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,7 +89,7 @@ function timingSafeCompare(a, b) {
   const bufA = Buffer.from(a || '', 'utf8');
   const bufB = Buffer.from(b || '', 'utf8');
   if (bufA.length !== bufB.length) {
-    crypto.timingSafeEqual(bufA, bufA); // constant-time dummy op
+    crypto.timingSafeEqual(bufA, bufA);
     return false;
   }
   return crypto.timingSafeEqual(bufA, bufB);
@@ -115,8 +110,7 @@ function validateSecretKey(req, res, next) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Cloudinary pool upload
-//  Starts at current round-robin index, falls back to next account on failure
+//  Cloudinary pool upload (buffer-based, no temp files)
 // ─────────────────────────────────────────────────────────────────────────────
 async function uploadToCloudinaryPool(fileBuffer, originalFilename) {
   if (cloudinaryAccounts.length === 0) {
@@ -130,7 +124,7 @@ async function uploadToCloudinaryPool(fileBuffer, originalFilename) {
     const account = cloudinaryAccounts[idx];
 
     try {
-      
+      console.log(`[Cloudinary] Trying ${account.name}…`);
 
       cloudinarySDK.config({
         cloud_name: account.cloud_name,
@@ -138,7 +132,6 @@ async function uploadToCloudinaryPool(fileBuffer, originalFilename) {
         api_secret: account.api_secret,
       });
 
-      // Upload from buffer (no temp file needed)
       const result = await new Promise((resolve, reject) => {
         const stream = cloudinarySDK.uploader.upload_stream(
           {
@@ -156,19 +149,18 @@ async function uploadToCloudinaryPool(fileBuffer, originalFilename) {
         stream.end(fileBuffer);
       });
 
-      // Advance pointer only on success
       rrIndex = (idx + 1) % cloudinaryAccounts.length;
       console.log(`[Cloudinary] ✓ Uploaded via ${account.name}`);
 
       return {
         url:     result.secure_url,
         id:      result.public_id,
-        
+        service: account.name,
       };
 
     } catch (err) {
-      
-      
+      console.warn(`[Cloudinary] ✗ ${account.name} failed: ${err.message}`);
+      errors.push(`${account.name}: ${err.message}`);
     }
   }
 
@@ -178,12 +170,11 @@ async function uploadToCloudinaryPool(fileBuffer, originalFilename) {
 // ─────────────────────────────────────────────────────────────────────────────
 //  Routes
 // ─────────────────────────────────────────────────────────────────────────────
-
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Protected storage status endpoint
+// Protected storage status
 app.get('/status', validateSecretKey, async (req, res) => {
   const stats = await Promise.all(
     cloudinaryAccounts.map(async (account) => {
@@ -214,7 +205,7 @@ app.get('/status', validateSecretKey, async (req, res) => {
   });
 });
 
-// Upload endpoint
+// Upload
 app.post(
   '/upload',
   uploadLimiter,
@@ -266,11 +257,12 @@ app.use((req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Start  (local dev only — Netlify uses module.exports)
+//  Local dev server (Netlify uses module.exports instead)
 // ─────────────────────────────────────────────────────────────────────────────
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`\n🚀  Server → http://localhost:${PORT}`);
+  const DEV_PORT = process.env.DEV_PORT || 3000;
+  app.listen(DEV_PORT, () => {
+    console.log(`\n🚀  Server → http://localhost:${DEV_PORT}`);
     console.log(`📦  Max file size : ${MAX_FILE_SIZE_MB} MB`);
     console.log(`\n☁️   Cloudinary Pool (${cloudinaryAccounts.length}/3 configured):`);
     cloudinaryAccounts.forEach((acc, i) => {
@@ -283,4 +275,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = app; 
+module.exports = app; // Netlify needs this
