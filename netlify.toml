@@ -4,7 +4,12 @@
   functions = "netlify/functions"
 
 [functions]
-  node_bundler = "esbuild"
+  # Use zip-it-and-ship-it bundler instead of esbuild
+  # This correctly bundles server.js and all node_modules together
+  # esbuild was failing to resolve the relative path to server.js
+  node_bundler = "zisi"
 
 [functions."api"]
   timeout = 10
+  # Tell the bundler to include server.js explicitly from project root
+  included_files = ["server.js"]
